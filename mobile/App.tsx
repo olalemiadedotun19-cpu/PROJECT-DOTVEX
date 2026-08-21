@@ -20,8 +20,8 @@ function ChatDrawerContent(props: any) {
   const colors = theme.colors;
 
   const navItems = [
-    { label: 'Chat', icon: 'chatbubble-outline', route: 'ChatMain' },
-    { label: 'Cognition Lab', icon: 'brain-outline', route: 'CognitionLab' },
+    { label: 'Chat', icon: 'chatbubbles-outline', route: 'ChatMain' },
+    { label: 'Cognition Lab', icon: 'bulb-outline', route: 'CognitionLab' },
     { label: 'Settings', icon: 'settings-outline', route: 'Settings' },
   ];
 
