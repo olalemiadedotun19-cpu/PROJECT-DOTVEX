@@ -1,0 +1,41 @@
+node_modules/
+build/
+dist/
+coverage/
+data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.log
+logs/
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+*.env*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+
+# Model files
+*.gguf
+*.bin
+*.safetensors
+
+# Temporary files
+tmp_test.js
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

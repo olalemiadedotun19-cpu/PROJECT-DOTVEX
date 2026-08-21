@@ -1,0 +1,12 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "snapshot": false,
+  "mcp": {
+    "kaggle": {
+      "type": "remote",
+      "url": "https://www.kaggle.com/mcp",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}

@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-main: #ffffff;
+    --bg-sidebar: #f9f9f9;
+    --bg-card: #f3f3f3;
+    --bg-composer: #f4f4f4;
+    --border-main: #e5e5e5;
+    --border-subtle: #eeeeee;
+    --text-primary: #0d0d0d;
+    --text-secondary: #5d5d5d;
+    --text-muted: #8e8e8e;
+    --accent: #10a37f;
+    --accent-hover: #1a7f64;
+    --sidebar-hover: #ececec;
+    --code-bg: #f6f6f6;
+  }
+
+  .dark {
+    /* Exact ChatGPT neutral matte charcoal palette (ZERO blue/navy tint) */
+    --bg-main: #212121;
+    --bg-sidebar: #171717;
+    --bg-card: #2f2f2f;
+    --bg-composer: #2f2f2f;
+    --border-main: #333333;
+    --border-subtle: #2a2a2a;
+    --text-primary: #ececec;
+    --text-secondary: #b4b4b4;
+    --text-muted: #737373;
+    --accent: #10a37f;
+    --accent-hover: #1a7f64;
+    --sidebar-hover: #212121;
+    --code-bg: #181818;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  overflow: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide scrollbars completely on textarea and inputs */
+textarea,
+#composer-textarea,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+textarea::-webkit-scrollbar,
+#composer-textarea::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ChatGPT style ultra-thin minimal auto-hiding scrollbars for message list */
+#dotvex-messages-viewport::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+#dotvex-messages-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#dotvex-messages-viewport::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 140, 0.2);
+  border-radius: 9999px;
+}
+
+#dotvex-messages-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 140, 140, 0.5);
+}
+
+.dark #dotvex-messages-viewport::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.15);
+}
+
+.dark #dotvex-messages-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 160, 160, 0.4);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideRight {
+  animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

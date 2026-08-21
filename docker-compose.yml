@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  dotvex-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime-cpu
+    container_name: dotvex-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      # QWEN3_MODEL_PATH, DATABASE_PATH, CORS_ORIGIN, QWEN3_GPU_ENABLED,
+      # API_KEY, etc. from .env
+    volumes:
+      # Mount the GGUF model file from host (persistent storage)
+      - model-data:/models:ro
+      # Mount the database and other data from host (persistent storage)
+      - db-data:/data
+      # Optional: mount logs
+      - ./logs:/data/logs
+      # Optional: mount backups directory for database snapshots
+      - ./backups:/data/backups
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # GPU-enabled service (deploy this on a CUDA-capable server).
+  # To build GPU image:
+  #   docker compose build --target runtime-gpu
+  # To run:
+  #   docker compose --build-arg TARGET=runtime-gpu up -d dotvex-api-gpu
+  dotvex-api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime-gpu
+    container_name: dotvex-api-gpu
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      QWEN3_GPU_ENABLED: true
+      QWEN3_GPU_TYPE: cuda
+      # QWEN3_MODEL_PATH, DATABASE_PATH, CORS_ORIGIN, API_KEY, etc. from .env.production
+    volumes:
+      - model-data:/models:ro
+      - db-data:/data
+      - ./logs:/data/logs
+      - ./backups:/data/backups
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  model-data:
+  db-data:

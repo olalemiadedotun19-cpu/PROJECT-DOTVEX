@@ -1,0 +1,6 @@
+{
+  "name": "DOTVEX",
+  "description": "Production-grade conversational AI assistant for DOTVEX, created by Dotman (Olalemi Michael Adedotun).",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}

@@ -1,0 +1,1 @@
+https://www.kaggle.com/api/v1/oauth2/authorize?response_type=code&client_id=kilo-mcp-client&redirect_uri=http%3A%2F%2F127.0.0.1%3A4097%2Fcallback&scope=resources.admin%3A*&code_challenge=8DEQDKUiOwP5yElXUsHua7SLbH-ADZWFn4gyA2jVhwc&code_challenge_method=S256&state=2d3e79ffe5dc93e2857c33cc52a738fb846f3e30fcc4298c481b66d568c1535c\nkilo-mcp-client

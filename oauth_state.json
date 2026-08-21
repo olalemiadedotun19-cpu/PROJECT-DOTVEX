@@ -1,0 +1,6 @@
+{
+  "codeVerifier": "HxR77uKGDWg1-DGfYUO5J0nMYkI3DJCLTclzZzZsdcU",
+  "state": "cd7c4885-6c73-4c26-b6b3-2247ed437d66",
+  "clientId": "dotvex-kaggle-mcp-client",
+  "redirectUri": "http://localhost:21715/oauth/callback"
+}
