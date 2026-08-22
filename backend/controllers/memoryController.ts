@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { MemoryService, memoryService } from '../services/memoryService';
 import { ErrorResponse, MemoryCreateRequest, MemoryUpdateRequest, MemoryMigrateRequest } from '../types/api';
  import { MemoryCategory, MemoryItem, MemorySourceType } from '../../src/types/memory';
+import { getFirebaseUserId } from '../middleware/firebaseAuth';
 
 const VALID_CATEGORIES: string[] = ['preference', 'fact', 'project', 'instruction', 'entity'];
 
@@ -42,7 +43,8 @@ function validateMemoryInput(body: any, isUpdate: boolean = false): string | nul
 
 export async function listMemoriesHandler(req: Request, res: Response) {
   try {
-    const memories = memoryService.getAllMemories();
+    const userId = getFirebaseUserId(req) || 'default';
+    const memories = memoryService.getAllMemories(userId);
     res.json(memories);
   } catch (err: any) {
     console.error('[DOTVEX] List memories error:', err);
@@ -55,13 +57,14 @@ export async function listMemoriesHandler(req: Request, res: Response) {
 
 export async function getMemoryHandler(req: Request, res: Response) {
   const { id } = req.params;
-  if (!id || id.length > 256) {
-    res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'Valid memory ID is required.' } });
+  if (!id) {
+    res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'Memory ID is required.' } });
     return;
   }
 
   try {
-    const memory = memoryService.getMemory(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const memory = memoryService.getMemory(id, userId);
     if (!memory) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Memory not found.' } });
       return;
@@ -85,17 +88,19 @@ export async function createMemoryHandler(req: Request, res: Response) {
   }
 
   try {
+    const userId = getFirebaseUserId(req) || 'default';
     const memory = memoryService.createMemory({
-         concept: body.concept,
-         category: body.category as MemoryCategory,
-         content: body.content,
-         confidence: body.confidence,
-         importance: body.importance,
-         lifespan: body.lifespan as any,
+        concept: body.concept,
+        category: body.category as MemoryCategory,
+        content: body.content,
+        confidence: body.confidence,
+        importance: body.importance,
+        lifespan: body.lifespan as any,
         tags: body.tags,
         sourceConversationId: body.sourceConversationId,
         sourceType: body.sourceType as any,
         evidenceCount: body.evidenceCount,
+        userId,
     });
     res.status(201).json(memory);
   } catch (err: any) {
@@ -122,7 +127,8 @@ export async function updateMemoryHandler(req: Request, res: Response) {
   }
 
   try {
-    const existing = memoryService.getMemory(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const existing = memoryService.getMemory(id, userId);
     if (!existing) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Memory not found.' } });
       return;
@@ -142,13 +148,13 @@ export async function updateMemoryHandler(req: Request, res: Response) {
     if (body.lastConfirmedAt !== undefined) (updateData as any).lastConfirmedAt = body.lastConfirmedAt;
     if (body.lastContradictedAt !== undefined) (updateData as any).lastContradictedAt = body.lastContradictedAt;
 
-    const success = memoryService.updateMemory(id, updateData);
+    const success = memoryService.updateMemory(id, updateData, userId);
     if (!success) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Memory not found.' } });
       return;
     }
 
-    const updated = memoryService.getMemory(id);
+    const updated = memoryService.getMemory(id, userId);
     res.json(updated);
   } catch (err: any) {
     console.error('[DOTVEX] Update memory error:', err);
@@ -167,7 +173,8 @@ export async function deleteMemoryHandler(req: Request, res: Response) {
   }
 
   try {
-    const deleted = memoryService.deleteMemory(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const deleted = memoryService.deleteMemory(id, userId);
     if (!deleted) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Memory not found.' } });
       return;
@@ -184,7 +191,8 @@ export async function deleteMemoryHandler(req: Request, res: Response) {
 
 export async function deleteAllMemoriesHandler(req: Request, res: Response) {
   try {
-    const deleted = memoryService.clearAllMemories();
+    const userId = getFirebaseUserId(req) || 'default';
+    const deleted = memoryService.clearAllMemories(userId);
     res.json({ deleted });
   } catch (err: any) {
     console.error('[DOTVEX] Delete all memories error:', err);
@@ -197,7 +205,8 @@ export async function deleteAllMemoriesHandler(req: Request, res: Response) {
 
 export async function memoryStatsHandler(req: Request, res: Response) {
   try {
-    const stats = memoryService.getStats();
+    const userId = getFirebaseUserId(req) || 'default';
+    const stats = memoryService.getStats(userId);
     res.json(stats);
   } catch (err: any) {
     console.error('[DOTVEX] Memory stats error:', err);
@@ -216,7 +225,8 @@ export async function migrateMemoriesHandler(req: Request, res: Response) {
   }
 
   try {
-    const result = memoryService.migrateFromLocalStorage(body.memories);
+    const userId = getFirebaseUserId(req) || 'default';
+    const result = memoryService.migrateFromLocalStorage(body.memories, userId);
     res.json({ imported: result.imported, skipped: result.skipped });
   } catch (err: any) {
     console.error('[DOTVEX] Migrate memories error:', err);
@@ -228,15 +238,16 @@ export async function migrateMemoriesHandler(req: Request, res: Response) {
 }
 
 export async function memorySearchHandler(req: Request, res: Response) {
-  const { q } = req.query;
-  if (typeof q !== 'string' || q.trim().length === 0) {
-    res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'Search query is required.' } });
+  const query = (req.query.q as string) || '';
+  if (!query.trim()) {
+    res.json({ results: [] });
     return;
   }
 
   try {
-    const memories = memoryService.getAllMemories();
-    const qLower = q.toLowerCase();
+    const userId = getFirebaseUserId(req) || 'default';
+    const memories = memoryService.getAllMemories(userId);
+    const qLower = query.toLowerCase();
     const results = memories.filter(
       (m) =>
         m.concept.toLowerCase().includes(qLower) ||
@@ -255,7 +266,8 @@ export async function memorySearchHandler(req: Request, res: Response) {
 
 export async function userUnderstandingHandler(req: Request, res: Response) {
   try {
-    const profile = memoryService.getUserUnderstandingProfile();
+    const userId = getFirebaseUserId(req) || 'default';
+    const profile = memoryService.getUserUnderstandingProfile(userId);
     res.json(profile);
   } catch (err: any) {
     console.error('[DOTVEX] User understanding error:', err);
@@ -268,7 +280,8 @@ export async function userUnderstandingHandler(req: Request, res: Response) {
 
 export async function communicationStyleHandler(req: Request, res: Response) {
   try {
-    const profile = memoryService.getUserUnderstandingProfile();
+    const userId = getFirebaseUserId(req) || 'default';
+    const profile = memoryService.getUserUnderstandingProfile(userId);
     res.json({
       communicationStyle: profile.communicationStyle,
       communicationStyleCount: profile.communicationStyle.length,
@@ -284,7 +297,8 @@ export async function communicationStyleHandler(req: Request, res: Response) {
 
 export async function preferencesHandler(req: Request, res: Response) {
   try {
-    const profile = memoryService.getUserUnderstandingProfile();
+    const userId = getFirebaseUserId(req) || 'default';
+    const profile = memoryService.getUserUnderstandingProfile(userId);
     res.json({
       preferences: profile.preferences,
       preferencesCount: profile.preferences.length,
@@ -299,15 +313,16 @@ export async function preferencesHandler(req: Request, res: Response) {
 }
 
 export async function learningEventsHandler(req: Request, res: Response) {
-  try {
-    const memoryId = req.params.memoryId;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+  const memoryId = req.params.id;
+  const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
 
+  try {
+    const userId = getFirebaseUserId(req) || 'default';
     if (memoryId) {
-      const events = memoryService.getLearningEvents(memoryId, limit);
+      const events = memoryService.getLearningEvents(memoryId, userId, limit);
       res.json(events);
     } else {
-      const events = memoryService.getAllLearningEvents(undefined, limit);
+      const events = memoryService.getAllLearningEvents(userId, limit);
       res.json(events);
     }
   } catch (err: any) {

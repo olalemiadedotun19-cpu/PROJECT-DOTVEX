@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
   AuthUser,
   signIn,
@@ -9,6 +10,7 @@ import {
   getCurrentUser,
   getIdToken,
   onAuthChange,
+  signInWithGoogle,
 } from '../services/firebase/firebaseAuthService';
 
 interface AuthContextType {
@@ -16,8 +18,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<{ success: boolean; error?: string }>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   getAuthToken: () => Promise<string | null>;
@@ -33,8 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const auth = require('../services/firebase/firebaseAuthService');
-    const unsubscribe = auth.onAuthChange(async (firebaseUser: any) => {
+    try {
+      GoogleSignin.configure({
+        webClientId: process.env.FIREBASE_CLIENT_ID || '',
+        offlineAccess: true,
+      });
+    } catch (e) {
+      console.warn('[DOTVEX] GoogleSignin configure failed:', (e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(firebaseUser));
@@ -57,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const handleSignIn = useCallback(async (email: string, password: string) => {
+  const handleSignInWithEmail = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const result = await signIn(email, password);
@@ -67,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const handleSignUp = useCallback(async (email: string, password: string, displayName: string) => {
+  const handleSignUpWithEmail = useCallback(async (email: string, password: string, displayName: string) => {
     setIsLoading(true);
     try {
       const result = await signUp(email, password, displayName);
@@ -77,9 +90,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleSignInWithGoogle = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = (userInfo as any).data?.serverAuthCode || (userInfo as any).idToken;
+
+      if (!idToken) {
+        const tokens = await GoogleSignin.getTokens();
+        const token = tokens.idToken;
+        if (!token) {
+          return { success: false, error: 'Failed to get Google ID token.' };
+        }
+        const result = await signInWithGoogle(token);
+        return { success: result.success, error: result.error };
+      }
+
+      const result = await signInWithGoogle(idToken);
+      return { success: result.success, error: result.error };
+    } catch (error: any) {
+      if (error?.message?.includes('cancelled') || error?.code === '12501') {
+        return { success: false, error: 'Sign-in cancelled.' };
+      }
+      return { success: false, error: error?.message || 'Google sign-in failed.' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const handleSignOut = useCallback(async () => {
     setIsLoading(true);
     try {
+      await GoogleSignin.signOut().catch(() => {});
       const result = await firebaseSignOut();
       return { success: result.success, error: result.error };
     } finally {
@@ -106,8 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     isLoading,
     isInitialized,
-    signIn: handleSignIn,
-    signUp: handleSignUp,
+    signInWithEmail: handleSignInWithEmail,
+    signUpWithEmail: handleSignUpWithEmail,
+    signInWithGoogle: handleSignInWithGoogle,
     signOut: handleSignOut,
     resetPassword: handleResetPassword,
     getAuthToken,

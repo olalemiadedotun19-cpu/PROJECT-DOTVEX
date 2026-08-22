@@ -16,7 +16,7 @@ import { DotvexLogo } from '../components/DotvexLogo';
 import { Ionicons } from '@expo/vector-icons';
 
 export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup: () => void; onLoggedIn: () => void }) {
-  const { signIn, isLoading } = useAuth();
+  const { signInWithEmail, signInWithGoogle, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,11 +28,21 @@ export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup
       setError('Please enter both email and password.');
       return;
     }
-    const result = await signIn(email.trim(), password);
+    const result = await signInWithEmail(email.trim(), password);
     if (result.success) {
       onLoggedIn();
     } else {
       setError(result.error || 'Login failed.');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    const result = await signInWithGoogle();
+    if (result.success) {
+      onLoggedIn();
+    } else if (result.error !== 'Sign-in cancelled.') {
+      setError(result.error || 'Google sign-in failed.');
     }
   };
 
@@ -47,6 +57,17 @@ export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup
           </View>
 
           <View style={{ width: '100%', maxWidth: 400 }}>
+            <TouchableOpacity onPress={handleGoogleSignIn} disabled={isLoading} style={styles.googleBtn}>
+              <Ionicons name="logo-google" size={18} color="#ececec" />
+              <Text style={styles.googleBtnText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: '#333' }]} />
+              <Text style={[styles.dividerText, { color: '#737373' }]}>OR</Text>
+              <View style={[styles.dividerLine, { backgroundColor: '#333' }]} />
+            </View>
+
             <Text style={styles.label}>Email</Text>
             <TextInput style={styles.input} placeholder="your@email.com" placeholderTextColor="#737373" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
@@ -75,7 +96,7 @@ export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup
 }
 
 export function SignupScreen({ onSwitchToLogin, onLoggedIn }: { onSwitchToLogin: () => void; onLoggedIn: () => void }) {
-  const { signUp, isLoading } = useAuth();
+  const { signUpWithEmail, isLoading } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -97,7 +118,7 @@ export function SignupScreen({ onSwitchToLogin, onLoggedIn }: { onSwitchToLogin:
       setError('Passwords do not match.');
       return;
     }
-    const result = await signUp(email.trim(), password, displayName.trim());
+    const result = await signUpWithEmail(email.trim(), password, displayName.trim());
     if (result.success) {
       onLoggedIn();
     } else {
@@ -215,6 +236,11 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#2f2f2f', borderRadius: 12, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#ececec' },
   primaryBtn: { backgroundColor: '#10a37f', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryBtnText: { fontSize: 14, fontWeight: 'bold', color: 'white' },
+  googleBtn: { backgroundColor: '#2f2f2f', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20, flexDirection: 'row', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: '#333' },
+  googleBtnText: { fontSize: 14, fontWeight: '600', color: '#ececec' },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 11, marginHorizontal: 12, fontWeight: '600' },
   link: { fontSize: 13 },
   error: { fontSize: 12, color: '#f43f5e', marginTop: 10 },
 });

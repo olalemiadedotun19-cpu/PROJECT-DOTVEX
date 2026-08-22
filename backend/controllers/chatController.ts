@@ -7,6 +7,7 @@ import { ChatRequest, ChatSuccessResponse, ErrorResponse } from '../types/api';
 import { ChatMessage } from '../../src/types/chat';
 import { CustomInstructions as ApiCustomInstructions } from '../types/api';
 import { logger } from '../utils/logger';
+import { getFirebaseUserId } from '../middleware/firebaseAuth';
 
 function buildCustomInstructionsText(customInstructions?: ApiCustomInstructions): string {
   if (!customInstructions) return '';
@@ -40,6 +41,7 @@ function validateRole(role: string | undefined): boolean {
 
 export async function chatHandler(req: Request, res: Response) {
   const body = req.body as ChatRequest;
+  const userId = getFirebaseUserId(req) || 'default';
 
   const message = body.message || body.userMessage;
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -133,7 +135,7 @@ export async function chatHandler(req: Request, res: Response) {
   };
 
   try {
-    const memoryContext = memoryService.buildMemoryContext(message);
+    const memoryContext = memoryService.buildMemoryContext(message, userId);
     let contextText = memoryContext.contextText;
 
     if (memoryContext.personalizationContext?.contextText) {
@@ -163,7 +165,7 @@ export async function chatHandler(req: Request, res: Response) {
     console.error('[DOTVEX] Memory context build error:', err.message);
   }
 
-  const resolvedConversationId = conversationService.ensureConversation(conversationId).id;
+  const resolvedConversationId = conversationService.ensureConversation(conversationId, userId).id;
 
   const userMessage: ChatMessage = {
     id: 'usr_' + Date.now(),
@@ -176,13 +178,13 @@ export async function chatHandler(req: Request, res: Response) {
   };
 
   try {
-    conversationService.saveMessage(userMessage);
+    conversationService.saveMessage(userMessage, userId);
   } catch (err: any) {
     console.error('[DOTVEX] Failed to save user message:', err.message);
   }
 
   try {
-    const commandResult = memoryService.handleMemoryCommands(message);
+    const commandResult = memoryService.handleMemoryCommands(message, userId);
     if (commandResult.handled) {
       const assistantMessage: ChatMessage = {
         id: 'ast_' + Date.now(),
@@ -195,7 +197,7 @@ export async function chatHandler(req: Request, res: Response) {
       };
 
       try {
-        conversationService.saveMessage(assistantMessage);
+        conversationService.saveMessage(assistantMessage, userId);
       } catch (err: any) {
         console.error('[DOTVEX] Failed to save assistant message:', err.message);
       }
@@ -239,7 +241,7 @@ export async function chatHandler(req: Request, res: Response) {
     }
 
     try {
-      memoryService.extractWithIntent(message, resolvedConversationId);
+      memoryService.extractWithIntent(message, resolvedConversationId, userId);
     } catch (err: any) {
       console.error('[DOTVEX] Memory extraction error:', err.message);
     }

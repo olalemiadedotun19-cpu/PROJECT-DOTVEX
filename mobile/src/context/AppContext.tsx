@@ -13,6 +13,7 @@ import {
 import { AsyncStorageAdapter } from '../services/storage';
 import { MobileVoiceService } from '../services/voice';
 import { getTheme, DotvexTheme, ACCENT_COLORS } from '../theme';
+import { getAuthToken } from '../services/firebase/firebaseAuthService';
 
 export const API_BASE_URL_DEFAULT = 'http://localhost:3000';
 
@@ -42,7 +43,10 @@ const storage = new AsyncStorageAdapter();
 const settingsService = new SettingsService(storage);
 const voiceService = new MobileVoiceService();
 
-const client = new ApiClient({ baseUrl: API_BASE_URL_DEFAULT });
+const client = new ApiClient({
+  baseUrl: API_BASE_URL_DEFAULT,
+  tokenProvider: () => getAuthToken(),
+});
 const chatService = new ChatService(client);
 const conversationService = new ConversationService(client);
 const cognitionService = new CognitionService(client);

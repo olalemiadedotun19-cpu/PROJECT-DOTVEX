@@ -239,11 +239,11 @@ export class MemoryRepository {
     return rows.map(this.rowToDbMemory);
   }
 
-  getLearningEvents(memoryId: string, limit: number = 50): DbLearningEvent[] {
+  getLearningEvents(memoryId: string, userId: string = 'default', limit: number = 50): DbLearningEvent[] {
     const stmt = this.db.prepare(
-      'SELECT * FROM learning_events WHERE memory_id = ? ORDER BY created_at DESC LIMIT ?'
+      'SELECT * FROM learning_events WHERE memory_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT ?'
     );
-    const rows = stmt.all(memoryId, limit) as any[];
+    const rows = stmt.all(memoryId, userId, limit) as any[];
     return rows.map((row) => ({
       id: row.id,
       memory_id: row.memory_id,

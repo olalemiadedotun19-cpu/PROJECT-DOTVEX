@@ -1352,8 +1352,8 @@ export class MemoryService {
     return 'temporary';
   }
 
-  getLearningEvents(memoryId: string, limit: number = 50): any[] {
-    return this.repo.getLearningEvents(memoryId, limit);
+  getLearningEvents(memoryId: string, userId: string = 'default', limit: number = 50): any[] {
+    return this.repo.getLearningEvents(memoryId, userId, limit);
   }
 
   getAllLearningEvents(userId: string = 'default', limit: number = 100): any[] {

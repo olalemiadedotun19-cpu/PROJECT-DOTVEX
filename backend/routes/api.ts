@@ -3,6 +3,7 @@ import { healthHandler } from '../controllers/healthController';
 import { chatHandler } from '../controllers/chatController';
 import { generateImageHandler } from '../controllers/imageController';
 import { codexHandler } from '../controllers/codexController';
+import { verifyFirebaseToken } from '../middleware/firebaseAuth';
 import {
   listConversationsHandler,
   getConversationHandler,
@@ -29,6 +30,8 @@ import {
 } from '../controllers/memoryController';
 
 const router = Router();
+
+router.use(verifyFirebaseToken);
 
 // Health check is registered in backend/index.ts before auth middleware
 // to allow load balancer probes without authentication

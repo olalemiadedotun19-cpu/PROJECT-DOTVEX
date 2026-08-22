@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { conversationService } from '../services/conversationService';
 import { ErrorResponse } from '../types/api';
+import { getFirebaseUserId } from '../middleware/firebaseAuth';
 
 export async function listConversationsHandler(req: Request, res: Response) {
   try {
-    const conversations = conversationService.getAllConversations();
+    const userId = getFirebaseUserId(req) || 'default';
+    const conversations = conversationService.getAllConversations(userId);
     res.json(conversations);
   } catch (err: any) {
     console.error('[DOTVEX] List conversations error:', err);
@@ -23,7 +25,8 @@ export async function getConversationHandler(req: Request, res: Response) {
   }
 
   try {
-    const conv = conversationService.getConversation(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const conv = conversationService.getConversation(id, userId);
     if (!conv) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Conversation not found.' } });
       return;
@@ -48,7 +51,8 @@ export async function createConversationHandler(req: Request, res: Response) {
   }
 
   try {
-    const conv = conversationService.createConversation({ title: title.length > 0 ? title : 'New chat' });
+    const userId = getFirebaseUserId(req) || 'default';
+    const conv = conversationService.createConversation({ title: title.length > 0 ? title : 'New chat', userId });
     res.status(201).json(conv);
   } catch (err: any) {
     console.error('[DOTVEX] Create conversation error:', err);
@@ -92,13 +96,14 @@ export async function updateConversationHandler(req: Request, res: Response) {
   }
 
   try {
-    const conv = conversationService.getConversation(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const conv = conversationService.getConversation(id, userId);
     if (!conv) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Conversation not found.' } });
       return;
     }
 
-    conversationService.updateConversation(id, updates);
+    conversationService.updateConversation(id, updates, userId);
     res.json({ success: true });
   } catch (err: any) {
     console.error('[DOTVEX] Update conversation error:', err);
@@ -117,7 +122,8 @@ export async function deleteConversationHandler(req: Request, res: Response) {
   }
 
   try {
-    const deleted = conversationService.deleteConversation(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const deleted = conversationService.deleteConversation(id, userId);
     if (!deleted) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Conversation not found.' } });
       return;
@@ -140,13 +146,14 @@ export async function listMessagesHandler(req: Request, res: Response) {
   }
 
   try {
-    const conv = conversationService.getConversation(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const conv = conversationService.getConversation(id, userId);
     if (!conv) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Conversation not found.' } });
       return;
     }
 
-    const messages = conversationService.getMessages(id);
+    const messages = conversationService.getMessages(id, userId);
     res.json(messages);
   } catch (err: any) {
     console.error('[DOTVEX] List messages error:', err);
@@ -194,13 +201,14 @@ export async function createMessageHandler(req: Request, res: Response) {
   });
 
   try {
-    const conv = conversationService.getConversation(id);
+    const userId = getFirebaseUserId(req) || 'default';
+    const conv = conversationService.getConversation(id, userId);
     if (!conv) {
       res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Conversation not found.' } });
       return;
     }
 
-    conversationService.replaceAllMessages(id, validatedMessages);
+    conversationService.replaceAllMessages(id, validatedMessages, userId);
 
     res.status(201).json({ created: validatedMessages.length });
   } catch (err: any) {

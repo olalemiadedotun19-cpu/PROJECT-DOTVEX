@@ -6,6 +6,8 @@ import {
   updateProfile,
   onAuthStateChanged,
   User,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';
 import { getFirebaseAuth } from './firebaseConfig';
 
@@ -13,7 +15,9 @@ export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
+  photoURL: string | null;
   emailVerified: boolean;
+  providerId: string;
 }
 
 export interface AuthResult {
@@ -28,7 +32,9 @@ function mapUser(user: User | null): AuthUser | null {
     uid: user.uid,
     email: user.email,
     displayName: user.displayName,
+    photoURL: user.photoURL,
     emailVerified: user.emailVerified,
+    providerId: user.providerData[0]?.providerId || 'unknown',
   };
 }
 
@@ -49,6 +55,17 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   try {
     const auth = getFirebaseAuth();
     const result = await signInWithEmailAndPassword(auth, email, password);
+    return { success: true, user: mapUser(result.user) };
+  } catch (error: any) {
+    return { success: false, error: getErrorMessage(error.code) };
+  }
+}
+
+export async function signInWithGoogle(googleIdToken: string): Promise<AuthResult> {
+  try {
+    const auth = getFirebaseAuth();
+    const credential = GoogleAuthProvider.credential(googleIdToken);
+    const result = await signInWithCredential(auth, credential);
     return { success: true, user: mapUser(result.user) };
   } catch (error: any) {
     return { success: false, error: getErrorMessage(error.code) };
@@ -86,6 +103,10 @@ export function getIdToken(): Promise<string | null> {
   return auth.currentUser.getIdToken();
 }
 
+export function getAuthToken(): Promise<string | null> {
+  return getIdToken();
+}
+
 export function onAuthChange(callback: (user: AuthUser | null) => void): () => void {
   const auth = getFirebaseAuth();
   return onAuthStateChanged(auth, (user) => callback(mapUser(user)));
@@ -103,6 +124,7 @@ function getErrorMessage(code: string): string {
     'auth/invalid-credential': 'Invalid email or password.',
     'auth/too-many-requests': 'Too many attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Please check your connection.',
+    'auth/popup-closed-by-user': 'Sign-in cancelled.',
   };
   return messages[code] || 'An unexpected error occurred. Please try again.';
 }
