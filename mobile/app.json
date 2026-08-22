@@ -8,7 +8,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#090a0f"
+      "backgroundColor": "#212121",
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": true,
@@ -21,7 +23,7 @@
     "android": {
       "package": "com.dotvex.app",
       "adaptiveIcon": {
-        "backgroundColor": "#090a0f",
+        "backgroundColor": "#212121",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

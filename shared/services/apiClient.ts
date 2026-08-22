@@ -2,6 +2,7 @@ export interface ApiClientConfig {
   baseUrl: string;
   apiKey?: string;
   getHeaders?: () => Record<string, string>;
+  tokenProvider?: () => Promise<string | null> | string | null;
 }
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
@@ -12,11 +13,13 @@ export class ApiClient {
   private baseUrl: string;
   private apiKey?: string;
   private getHeaders?: () => Record<string, string>;
+  private tokenProvider?: () => Promise<string | null> | string | null;
 
   constructor(config: ApiClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
     this.apiKey = config.apiKey;
     this.getHeaders = config.getHeaders;
+    this.tokenProvider = config.tokenProvider;
   }
 
   setBaseUrl(url: string): void {
@@ -31,13 +34,19 @@ export class ApiClient {
     return this.baseUrl;
   }
 
-  private buildHeaders(): Record<string, string> {
+  private async buildHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(this.getHeaders ? this.getHeaders() : {}),
     };
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
+    }
+    if (this.tokenProvider) {
+      const token = await this.tokenProvider();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
     return headers;
   }
@@ -49,7 +58,7 @@ export class ApiClient {
     const response = await fetch(url, {
       ...rest,
       headers: {
-        ...this.buildHeaders(),
+        ...(await this.buildHeaders()),
         ...(options.headers || {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

@@ -1,32 +1,23 @@
 import 'react-native-gesture-handler';
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  Switch,
-  FlatList,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, SafeAreaView, ScrollView, TextInput, Switch, FlatList, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+const Stack = createNativeStackNavigator();
 import { AppProvider, useApp } from './src/context/AppContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ChatScreen } from './src/screens/ChatScreen';
 import { CognitionLab } from './src/screens/CognitionLab';
 import { SidebarDrawer } from './src/components/SidebarDrawer';
 import { DotvexLogo } from './src/components/DotvexLogo';
+import { SplashScreen, InitializationScreen } from './src/screens/SplashScreens';
+import { LoginScreen, SignupScreen, ForgotPasswordScreen } from './src/screens/AuthScreens';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMessage, Conversation, GroupedConversations, DotvexModelId } from '@dotvex/shared';
 
-const Stack = createNativeStackNavigator();
-
 function MainApp() {
   const app = useApp();
+  const { isAuthenticated, user, signOut, getAuthToken } = useAuth();
   const c = app.theme.colors;
 
   const [activeView, setActiveView] = useState<'chat' | 'cognition'>('chat');
@@ -36,10 +27,8 @@ function MainApp() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [composerSeed, setComposerSeed] = useState('');
   const [activeModelId, setActiveModelId] = useState<DotvexModelId>(app.activeModelId);
 
-  // Modal states
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showImages, setShowImages] = useState(false);
@@ -51,6 +40,8 @@ function MainApp() {
   const [showShare, setShowShare] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showVoiceMode, setShowVoiceMode] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -68,7 +59,7 @@ function MainApp() {
       const newConv = await app.conversationService.createConversation('New chat');
       refreshConversations();
       setActiveConversationId(newConv.id);
-    } catch (err) { /* local fallback */ }
+    } catch (err) {}
   }, [app, refreshConversations]);
 
   const handleSelectConversation = useCallback(async (id: string) => {
@@ -106,6 +97,10 @@ function MainApp() {
   const handleOpenSearch = useCallback(() => { setShowSearch(true); }, []);
   const currentConv = conversations.find((conv) => conv.id === activeConversationId);
 
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+  }, [signOut]);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: c.bgMain }]}>
       <StatusBar barStyle={app.isDark ? 'light-content' : 'dark-content'} />
@@ -126,7 +121,7 @@ function MainApp() {
           <TouchableOpacity onPress={handleNewChat} style={{ padding: 7 }}>
             <Ionicons name="create-outline" size={14} color={c.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowSearch(true)} style={{ padding: 7 }}>
+          <TouchableOpacity onPress={handleOpenSearch} style={{ padding: 7 }}>
             <Ionicons name="search-outline" size={14} color={c.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -158,7 +153,7 @@ function MainApp() {
         <CognitionLab theme={app.theme} cognitionService={app.cognitionService} onBack={() => setActiveView('chat')} />
       )}
 
-      {/* Drawer Modal */}
+      {/* Drawer */}
       <Modal visible={drawerOpen} transparent animationType="slide" onRequestClose={() => setDrawerOpen(false)}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
           <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setDrawerOpen(false)} />
@@ -184,13 +179,15 @@ function MainApp() {
             onDeleteConversation={handleDeleteConversation}
             onToggleTheme={app.toggleTheme}
             onClose={() => setDrawerOpen(false)}
+            user={user}
+            onSignOut={handleSignOut}
           />
         </View>
       </Modal>
 
       {/* Modals */}
       <SearchModal visible={showSearch} onClose={() => setShowSearch(false)} theme={app.theme} onSelectConversation={(id: string) => { setShowSearch(false); handleSelectConversation(id); }} conversations={conversations} />
-      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} theme={app.theme} settings={app.settings} onUpdateSettings={app.updateSettings} />
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} theme={app.theme} settings={app.settings} onUpdateSettings={app.updateSettings} user={user} />
       <LibraryModal visible={showLibrary} onClose={() => setShowLibrary(false)} theme={app.theme} />
       <ScheduledModal visible={showScheduled} onClose={() => setShowScheduled(false)} theme={app.theme} />
       <PluginsModal visible={showPlugins} onClose={() => setShowPlugins(false)} theme={app.theme} />
@@ -243,7 +240,7 @@ function SearchModal({ visible, onClose, theme, onSelectConversation, conversati
   );
 }
 
-function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: any) {
+function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings, user }: any) {
   const c = theme.colors;
   const [page, setPage] = useState('main');
   const sections = [
@@ -265,6 +262,14 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: c.textPrimary }}>Settings</Text>
         <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={c.textMuted} /></TouchableOpacity>
       </View>
+      <TouchableOpacity onPress={() => setPage('account')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.borderSubtle }}>
+        <Ionicons name="person-circle-outline" size={22} color={c.accent} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, color: c.textPrimary, fontWeight: '600' }}>Account</Text>
+          <Text style={{ fontSize: 11, color: c.textMuted }}>{user?.email || 'Signed in'}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+      </TouchableOpacity>
       {sections.map((s) => (
         <TouchableOpacity key={s.key} onPress={() => setPage(s.key)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.borderSubtle }}>
           <Ionicons name={s.icon as any} size={18} color={c.accent} />
@@ -272,6 +277,13 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
           <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
         </TouchableOpacity>
       ))}
+    </View>
+  );
+
+  const SettingRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.borderSubtle }}>
+      <Text style={{ fontSize: 13, color: c.textPrimary }}>{label}</Text>
+      {value}
     </View>
   );
 
@@ -285,22 +297,28 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
     </View>
   );
 
-  const SettingRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.borderSubtle }}>
-      <Text style={{ fontSize: 13, color: c.textPrimary }}>{label}</Text>
-      {value}
-    </View>
-  );
-
   const renderControls = () => {
     switch (page) {
+      case 'account':
+        return renderSection('Account', (
+          <View>
+            <View style={{ alignItems: 'center', paddingVertical: 20, backgroundColor: c.bgCard, borderRadius: 14, borderWidth: 1, borderColor: c.borderSubtle, marginBottom: 16 }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>{(user?.displayName || user?.email || 'U')[0].toUpperCase()}</Text>
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: c.textPrimary, marginTop: 10 }}>{user?.displayName || 'User'}</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{user?.email}</Text>
+            </View>
+            <Text style={{ fontSize: 11, color: c.textMuted, marginBottom: 8 }}>FIREBASE UID</Text>
+            <Text style={{ fontSize: 10, fontFamily: 'monospace', color: c.textMuted, backgroundColor: c.bgInput, padding: 8, borderRadius: 6 }}>{user?.uid || 'unknown'}</Text>
+          </View>
+        ));
       case 'personalization':
         return renderSection('Personalization', (
           <View>
             <SettingRow label="User Name" value={<Text style={{ fontSize: 12, color: c.textSecondary }}>{settings.userName}</Text>} />
             <SettingRow label="Email" value={<Text style={{ fontSize: 12, color: c.textSecondary }}>{settings.userEmail}</Text>} />
             <SettingRow label="Workspace" value={<Text style={{ fontSize: 12, color: c.textSecondary }}>{settings.workspace}</Text>} />
-            <SettingRow label="Response Style" value={<Text style={{ fontSize: 12, color: c.textSecondary }}>{settings.customInstructions.responseStyle}</Text>} />
           </View>
         ));
       case 'memory':
@@ -317,7 +335,6 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
             <SettingRow label="Dark Mode" value={<Switch value={settings.theme === 'dark'} onValueChange={(v: boolean) => onUpdateSettings({ theme: v ? 'dark' : 'light' })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
             <SettingRow label="Auto-scroll" value={<Switch value={settings.general.autoScroll} onValueChange={(v: boolean) => onUpdateSettings({ general: { ...settings.general, autoScroll: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
             <SettingRow label="Haptic Feedback" value={<Switch value={settings.general.hapticFeedback} onValueChange={(v: boolean) => onUpdateSettings({ general: { ...settings.general, hapticFeedback: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
-            <SettingRow label="Live Markdown Preview" value={<Switch value={settings.general.liveMarkdownPreview} onValueChange={(v: boolean) => onUpdateSettings({ general: { ...settings.general, liveMarkdownPreview: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
           </View>
         ));
       case 'notifications':
@@ -333,7 +350,6 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
           <View>
             <SettingRow label="Voice enabled" value={<Switch value={settings.voice.enabled} onValueChange={(v: boolean) => onUpdateSettings({ voice: { ...settings.voice, enabled: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
             <SettingRow label="Auto-play response" value={<Switch value={settings.voice.autoPlayResponse} onValueChange={(v: boolean) => onUpdateSettings({ voice: { ...settings.voice, autoPlayResponse: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
-            <SettingRow label="Continuous listening" value={<Switch value={settings.voice.continuousListening} onValueChange={(v: boolean) => onUpdateSettings({ voice: { ...settings.voice, continuousListening: v } })} trackColor={{ false: c.borderMain, true: c.accent }} />} />
           </View>
         ));
       case 'safety':
@@ -356,9 +372,7 @@ function SettingsModal({ visible, onClose, theme, settings, onUpdateSettings }: 
             <Text style={{ fontSize: 11, fontWeight: 'bold', color: c.textSecondary, marginBottom: 4 }}>API Endpoint</Text>
             <TextInput style={{ backgroundColor: c.bgInput, borderRadius: 10, borderWidth: 1, borderColor: c.borderSubtle, padding: 10, color: c.textPrimary, fontSize: 13, marginBottom: 10 }} value={settings.ai.remoteApiEndpoint} onChangeText={(v: string) => onUpdateSettings({ ai: { ...settings.ai, remoteApiEndpoint: v } })} placeholder="https://your-server.com" placeholderTextColor={c.textMuted} autoCapitalize="none" />
             <Text style={{ fontSize: 11, fontWeight: 'bold', color: c.textSecondary, marginBottom: 4 }}>Temperature</Text>
-            <TextInput style={{ backgroundColor: c.bgInput, borderRadius: 10, borderWidth: 1, borderColor: c.borderSubtle, padding: 10, color: c.textPrimary, fontSize: 13, marginBottom: 10 }} value={String(settings.ai.temperature)} onChangeText={(v: string) => onUpdateSettings({ ai: { ...settings.ai, temperature: parseFloat(v) || 0.7 } })} keyboardType="decimal-pad" />
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: c.textSecondary, marginBottom: 4 }}>Max Tokens</Text>
-            <TextInput style={{ backgroundColor: c.bgInput, borderRadius: 10, borderWidth: 1, borderColor: c.borderSubtle, padding: 10, color: c.textPrimary, fontSize: 13 }} value={String(settings.ai.maxTokens)} onChangeText={(v: string) => onUpdateSettings({ ai: { ...settings.ai, maxTokens: parseInt(v) || 2048 } })} keyboardType="number-pad" />
+            <TextInput style={{ backgroundColor: c.bgInput, borderRadius: 10, borderWidth: 1, borderColor: c.borderSubtle, padding: 10, color: c.textPrimary, fontSize: 13 }} value={String(settings.ai.temperature)} onChangeText={(v: string) => onUpdateSettings({ ai: { ...settings.ai, temperature: parseFloat(v) || 0.7 } })} keyboardType="decimal-pad" />
           </View>
         ));
       case 'storage':
@@ -402,7 +416,6 @@ function LibraryModal({ visible, onClose, theme }: any) {
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: c.textPrimary }}>Library</Text>
         <TouchableOpacity onPress={onClose}><Ionicons name="close" size={20} color={c.textMuted} /></TouchableOpacity>
       </View>
-      <Text style={{ fontSize: 12, color: c.textMuted, marginBottom: 12 }}>Saved responses and notes appear here.</Text>
       <View style={{ alignItems: 'center', paddingVertical: 30 }}>
         <Ionicons name="book-outline" size={40} color={c.textMuted} />
         <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 8 }}>No items saved yet.</Text>
@@ -562,11 +575,47 @@ function VoiceModeModal({ visible, onClose, theme, voiceService, onTranscribedQu
   );
 }
 
+function AuthApp() {
+  const { isAuthenticated, isInitialized } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const [showInit, setShowInit] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+
+  if (showSplash) {
+    return <SplashScreen onFinished={() => { setShowSplash(false); setShowInit(true); }} />;
+  }
+
+  if (showInit) {
+    return <InitializationScreen onFinished={(authenticated: boolean) => { setShowInit(false); }} />;
+  }
+
+  if (!isInitialized) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#212121', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="small" color="#10a37f" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (showForgotPassword) {
+      return <ForgotPasswordScreen onBack={() => setShowForgotPassword(false)} />;
+    }
+    if (showSignup) {
+      return <SignupScreen onSwitchToLogin={() => setShowSignup(false)} onLoggedIn={() => setShowSignup(false)} />;
+    }
+    return <LoginScreen onSwitchToSignup={() => setShowSignup(true)} onLoggedIn={() => {}} />;
+  }
+
+  return <MainApp />;
+}
+
 function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainApp} />
+        <Stack.Screen name="Main" component={AuthApp} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -574,9 +623,11 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppNavigator />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AppNavigator />
+      </AppProvider>
+    </AuthProvider>
   );
 }
 

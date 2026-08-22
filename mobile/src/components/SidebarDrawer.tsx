@@ -34,6 +34,8 @@ interface Props {
   onDeleteConversation: (id: string) => void;
   onToggleTheme: () => void;
   onClose: () => void;
+  user?: { uid: string; email: string | null; displayName: string | null } | null;
+  onSignOut?: () => void;
 }
 
 export function SidebarDrawer({
@@ -58,6 +60,8 @@ export function SidebarDrawer({
   onDeleteConversation,
   onToggleTheme,
   onClose,
+  user,
+  onSignOut,
 }: Props) {
   const c = theme.colors;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -182,11 +186,11 @@ export function SidebarDrawer({
         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 12 }} onPress={() => setShowUserMenu(!showUserMenu)}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={styles.avatar}>
-              <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>OA</Text>
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>{(user?.displayName || user?.email || 'U')[0].toUpperCase()}</Text>
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: c.textPrimary }}>Olalemi Adedotun</Text>
-              <Text style={{ fontSize: 10, color: c.textMuted }}>Dotman</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: c.textPrimary }} numberOfLines={1}>{user?.displayName || 'User'}</Text>
+              <Text style={{ fontSize: 10, color: c.textMuted }} numberOfLines={1}>{user?.email || ''}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => { onOpenUpgrade(); onClose(); }} style={[styles.upgradeBtn, { backgroundColor: c.dark ? '#2a2a2a' : '#e5e5e5', borderColor: c.dark ? '#383838' : '#d5d5d5' }]}>
@@ -200,7 +204,7 @@ export function SidebarDrawer({
             {navItem(theme.dark ? 'sunny-outline' : 'moon-outline', theme.dark ? 'Switch to Light Theme' : 'Switch to Dark Theme', onToggleTheme)}
             {navItem('bulb-outline', 'Cognition Lab Graph', onOpenCognitionLab, c.blue)}
             <View style={{ height: 1, backgroundColor: c.borderSubtle, marginVertical: 4 }} />
-            {navItem('log-out-outline', 'Clear Local Data', () => {}, c.red)}
+            {onSignOut ? navItem('log-out-outline', 'Sign Out', onSignOut, c.red) : null}
           </View>
         )}
       </View>
