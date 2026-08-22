@@ -20,7 +20,20 @@ logs/
 __pycache__/
 *.pyc
 
-# Model files
+# Firebase / credentials
+service-account-key.json
+service-account*.json
+*-credentials.json
+google-services.json
+!mobile/google-services.json
+secrets/
+credentials/
+
+# Expo
+.expo/
+.mobile/
+*.jks
+*.keystore
 *.gguf
 *.bin
 *.safetensors

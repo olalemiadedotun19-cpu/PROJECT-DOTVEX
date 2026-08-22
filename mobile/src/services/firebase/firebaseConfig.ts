@@ -2,12 +2,12 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyDOTVEX_MOBILE_CLIENT_KEY',
-  authDomain: 'dotvex-app.firebaseapp.com',
-  projectId: 'dotvex-app',
-  storageBucket: 'dotvex-app.appspot.com',
-  messagingSenderId: '000000000000',
-  appId: '1:000000000000:web:dotvex_mobile_app',
+  apiKey: 'AIzaSyBRyyAmgLN1HX8qmmdsLhLsNCA4yn2vYWI',
+  authDomain: 'dotvex-ai.firebaseapp.com',
+  projectId: 'dotvex-ai',
+  storageBucket: 'dotvex-ai.firebasestorage.app',
+  messagingSenderId: '181716283342',
+  appId: '1:181716283342:web:aef5f625528e826b3c859f',
 };
 
 let firebaseApp: FirebaseApp;
@@ -31,4 +31,12 @@ export function getFirebaseAuth(): Auth {
   return firebaseAuth;
 }
 
+export const FIREBASE_CLIENT_ID = '';
+
 export { firebaseConfig };
+
+export const GOOGLE_SIGN_IN_CONFIG = {
+  webClientId: FIREBASE_CLIENT_ID,
+  offlineAccess: true,
+  scopes: ['profile', 'email'],
+};

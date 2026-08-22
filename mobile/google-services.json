@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "181716283342",
+    "project_id": "dotvex-ai",
+    "storage_bucket": "dotvex-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:181716283342:android:a2b083f539074be23c859f",
+        "android_client_info": {
+          "package_name": "com.dotvex.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnAjEGfvN3rcHxsDSrGM4woYaq8Nne1Po"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

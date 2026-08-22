@@ -7,7 +7,7 @@ let firebaseReady = false;
 
 function getFirebaseApp() {
   if (firebaseReady) {
-    return getApps()[0]!;
+    return getApps()[0] ?? null;
   }
   try {
     const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -16,13 +16,21 @@ function getFirebaseApp() {
     if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
       initializeApp({ credential: applicationDefault() });
     } else if (serviceAccountKey) {
-      const parsed = JSON.parse(serviceAccountKey);
-      initializeApp({ credential: cert(parsed) });
+      try {
+        const parsed = JSON.parse(serviceAccountKey);
+        initializeApp({ credential: cert(parsed) });
+      } catch {
+        if (fs.existsSync(serviceAccountKey)) {
+          initializeApp({ credential: cert(serviceAccountKey) });
+        } else {
+          throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY');
+        }
+      }
     } else {
       initializeApp();
     }
     firebaseReady = true;
-    return getApps()[0]!;
+    return getApps()[0] ?? null;
   } catch (error) {
     console.warn('[DOTVEX] Firebase Admin not configured — using anonymous mode:', (error as Error).message);
     return null;
@@ -64,11 +72,6 @@ export async function verifyFirebaseToken(req: Request, res: Response, next: Nex
       next();
       return;
     } catch (error) {
-      if ((error as any).code === 'app/no-app') {
-        req.userId = 'default';
-        next();
-        return;
-      }
       res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired Firebase ID token.' } });
       return;
     }
