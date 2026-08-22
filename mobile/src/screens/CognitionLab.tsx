@@ -10,6 +10,27 @@ import {
 import { MemoryItem, MemoryCategory, CognitionLabStats } from '@dotvex/shared';
 import { DotvexTheme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
+
+function ValueSlider({ value, onChange, min, max, step, color, theme }: any) {
+  const decrease = () => onChange(Math.max(min, +(value - step).toFixed(2)));
+  const increase = () => onChange(Math.min(max, +(value + step).toFixed(2)));
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <TouchableOpacity onPress={decrease} style={{ padding: 8, borderRadius: 8, backgroundColor: theme.colors.bgCard, borderWidth: 1, borderColor: theme.colors.borderMain }}>
+        <Ionicons name="remove" size={18} color={color} />
+      </TouchableOpacity>
+      <View style={{ flex: 1, alignItems: 'center' }}>
+        <Text style={{ fontSize: 13, fontWeight: 'bold', color }}>{(value * 100).toFixed(0)}%</Text>
+        <View style={{ width: '100%', height: 4, borderRadius: 2, backgroundColor: theme.colors.borderMain, marginTop: 4 }}>
+          <View style={{ width: `${((value - min) / (max - min)) * 100}%`, height: 4, borderRadius: 2, backgroundColor: color }} />
+        </View>
+      </View>
+      <TouchableOpacity onPress={increase} style={{ padding: 8, borderRadius: 8, backgroundColor: theme.colors.bgCard, borderWidth: 1, borderColor: theme.colors.borderMain }}>
+        <Ionicons name="add" size={18} color={color} />
+      </TouchableOpacity>
+    </View>
+  );
+}
 import Slider from '@react-native-community/slider';
 
 interface Props {
@@ -171,7 +192,7 @@ export function CognitionLab({ theme, cognitionService, onBack }: Props) {
                   <Text style={styles.formLabel}>Confidence Score</Text>
                   <Text style={{ fontSize: 11, fontWeight: 'bold', color: c.blue, fontFamily: 'monospace' }}>{(newConfidence * 100).toFixed(0)}%</Text>
                 </View>
-                <Slider style={{ width: '100%', height: 30 }} minimumValue={0.1} maximumValue={1.0} step={0.05} value={newConfidence} onValueChange={setNewConfidence} minimumTrackTintColor={c.blue} maximumTrackTintColor={c.borderMain} thumbTintColor={c.blue} />
+                <ValueSlider value={newConfidence} onChange={setNewConfidence} min={0.1} max={1.0} step={0.05} color={c.blue} theme={theme} />
               </View>
 
               <View>
@@ -179,7 +200,7 @@ export function CognitionLab({ theme, cognitionService, onBack }: Props) {
                   <Text style={styles.formLabel}>Importance</Text>
                   <Text style={{ fontSize: 11, fontWeight: 'bold', color: c.amber, fontFamily: 'monospace' }}>{(newImportance * 100).toFixed(0)}%</Text>
                 </View>
-                <Slider style={{ width: '100%', height: 30 }} minimumValue={0} maximumValue={1} step={0.05} value={newImportance} onValueChange={setNewImportance} minimumTrackTintColor={c.amber} maximumTrackTintColor={c.borderMain} thumbTintColor={c.amber} />
+                <ValueSlider value={newImportance} onChange={setNewImportance} min={0} max={1} step={0.05} color={c.amber} theme={theme} />
               </View>
 
               {editingMemory && (
