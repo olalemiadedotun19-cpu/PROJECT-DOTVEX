@@ -6,11 +6,13 @@ workflows:
     environment:
       node: 20
       java: 17
+      ndk: 25.1.8937393
     cache:
       cache_paths:
         - ~/.npm
         - ~/.gradle
         - ~/Library/Caches/CocoaPods
+        - mobile/node_modules
     triggering:
       events:
         - push
@@ -24,17 +26,14 @@ workflows:
         working_directory: mobile
         script: |
           npm install
-      - name: Install Expo CLI
-        script: |
-          npm install -g expo-cli
       - name: Prebuild Android
         working_directory: mobile
         script: |
-          npx expo prebuild --platform android
+          npx expo prebuild --platform android --no-install
       - name: Build Android APK
         working_directory: mobile/android
         script: |
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
     artifacts:
       - mobile/android/app/build/outputs/apk/debug/*.apk
     publishing:
