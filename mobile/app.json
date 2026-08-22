@@ -38,7 +38,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-speech-recognition"
+      "expo-speech-recognition",
+      "@react-native-google-signin/google-signin"
     ]
   }
 }

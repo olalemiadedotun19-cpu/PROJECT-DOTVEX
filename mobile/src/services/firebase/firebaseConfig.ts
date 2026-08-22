@@ -31,7 +31,7 @@ export function getFirebaseAuth(): Auth {
   return firebaseAuth;
 }
 
-export const FIREBASE_CLIENT_ID = '';
+export const FIREBASE_CLIENT_ID = '181716283342-3fot88dc41hl1m8gueqm1njkt537nvkg.apps.googleusercontent.com';
 
 export { firebaseConfig };
 

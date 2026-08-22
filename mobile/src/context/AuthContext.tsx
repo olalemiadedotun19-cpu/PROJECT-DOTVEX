@@ -12,6 +12,7 @@ import {
   onAuthChange,
   signInWithGoogle,
 } from '../services/firebase/firebaseAuthService';
+import { GOOGLE_SIGN_IN_CONFIG } from '../services/firebase/firebaseConfig';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -37,10 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      GoogleSignin.configure({
-        webClientId: process.env.FIREBASE_CLIENT_ID || '',
-        offlineAccess: true,
-      });
+      GoogleSignin.configure(GOOGLE_SIGN_IN_CONFIG);
     } catch (e) {
       console.warn('[DOTVEX] GoogleSignin configure failed:', (e as Error).message);
     }
