@@ -10,9 +10,9 @@ import {
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { DotvexLogo } from '../components/DotvexLogo';
 import { Ionicons } from '@expo/vector-icons';
 
 export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup: () => void; onLoggedIn: () => void }) {
@@ -51,7 +51,7 @@ export function LoginScreen({ onSwitchToSignup, onLoggedIn }: { onSwitchToSignup
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <DotvexLogo size="xl" showText={true} showBadge={true} />
+            <Image source={require('../../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 16 }} />
             <Text style={[styles.welcome, { color: '#ececec' }]}>Welcome back</Text>
             <Text style={[styles.subtitle, { color: '#737373' }]}>Sign in to your DOTVEX account</Text>
           </View>
@@ -131,7 +131,7 @@ export function SignupScreen({ onSwitchToLogin, onLoggedIn }: { onSwitchToLogin:
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <DotvexLogo size="xl" showText={true} showBadge={true} />
+            <Image source={require('../../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 16 }} />
             <Text style={[styles.welcome, { color: '#ececec' }]}>Create your account</Text>
             <Text style={[styles.subtitle, { color: '#737373' }]}>Join DOTVEX — your personal AI assistant</Text>
           </View>
@@ -195,7 +195,7 @@ export function ForgotPasswordScreen({ onBack }: { onBack: () => void }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <DotvexLogo size="xl" showText={true} showBadge={true} />
+            <Image source={require('../../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 16 }} />
             <Text style={[styles.welcome, { color: '#ececec' }]}>Reset your password</Text>
             <Text style={[styles.subtitle, { color: '#737373' }]}>Enter your email and we'll send you a reset link</Text>
           </View>
