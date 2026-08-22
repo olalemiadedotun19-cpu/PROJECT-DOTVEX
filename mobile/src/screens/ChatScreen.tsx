@@ -2,17 +2,15 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { ChatMessage, GenerationChunk, MessageStatus } from '@dotvex/shared';
-import { useApp } from '../context/AppContext';
+import { ChatMessage, MessageStatus, DotvexModelId } from '@dotvex/shared';
+import { DotvexTheme } from '../theme';
 import { MessageBubble } from '../components/MessageBubble';
+import { MessageComposer } from '../components/MessageComposer';
+import { EmptyState } from '../components/EmptyState';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
@@ -22,7 +20,19 @@ interface Props {
   setConversationId: (id: string) => void;
   isGenerating: boolean;
   setIsGenerating: (v: boolean) => void;
-  onOpenVoice?: () => void;
+  theme: DotvexTheme;
+  activeModelId: DotvexModelId;
+  onChangeModel: (id: DotvexModelId) => void;
+  chatService: any;
+  settings: any;
+  onOpenVoiceMode: () => void;
+  onOpenCodex: () => void;
+  onOpenImages: () => void;
+  onOpenLibrary: () => void;
+  onOpenScheduled: () => void;
+  onOpenPlugins: () => void;
+  onOpenSearch: () => void;
+  onRegenerate?: (id: string) => void;
 }
 
 export function ChatScreen({
@@ -32,20 +42,30 @@ export function ChatScreen({
   setConversationId,
   isGenerating,
   setIsGenerating,
-  onOpenVoice,
+  theme,
+  activeModelId,
+  onChangeModel,
+  chatService,
+  settings,
+  onOpenVoiceMode,
+  onOpenCodex,
+  onOpenImages,
+  onOpenLibrary,
+  onOpenScheduled,
+  onOpenPlugins,
+  onOpenSearch,
+  onRegenerate,
 }: Props) {
-  const { theme, chatService, settings, voiceService } = useApp();
   const [text, setText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const colors = theme.colors;
+  const c = theme.colors;
 
-  const handleSend = useCallback(async () => {
-    const trimmed = text.trim();
+  const handleSend = useCallback(async (msg: string, options?: { enableThinking?: boolean; enableWebSearch?: boolean }) => {
+    const trimmed = msg.trim();
     if (!trimmed || isGenerating) return;
 
-    setText('');
     setIsGenerating(true);
+    setText('');
 
     let currentConvId = conversationId;
     if (!currentConvId) {
@@ -59,17 +79,20 @@ export function ChatScreen({
       role: 'user',
       content: trimmed,
       timestamp: Date.now(),
-      status: 'completed',
+      status: 'completed' as MessageStatus,
     };
 
     const assistantId = 'ast_' + Date.now();
+    const modelName = activeModelId === 'dotvex-2.0-flash' ? 'DOTVEX 2.0 Flash' : activeModelId === 'dotvex-2.0-ultra' ? 'DOTVEX 2.0 Ultra' : 'DOTVEX 2.0 Pro';
+
     const assistantMessage: ChatMessage = {
       id: assistantId,
       conversationId: currentConvId,
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
-      status: 'thinking',
+      status: 'thinking' as MessageStatus,
+      modelName,
     };
 
     const allMessages = [...messages, userMessage, assistantMessage];
@@ -84,22 +107,18 @@ export function ChatScreen({
       temperature: settings.ai.temperature,
       topP: settings.ai.topP,
       maxTokens: settings.ai.maxTokens,
-      enableThinking: settings.ai.enableReasoningTrace,
+      enableThinking: options?.enableThinking !== false,
+      enableWebSearch: options?.enableWebSearch || false,
+      modelId: activeModelId,
+      modelName,
       onStatusChange: (status: MessageStatus) => {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, status } : m))
-        );
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, status } : m)));
       },
-      onChunk: (chunk: GenerationChunk) => {
+      onChunk: (chunk: any) => {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? {
-                  ...m,
-                  content: chunk.text,
-                  reasoningTrace: chunk.reasoning || m.reasoningTrace,
-                  status: chunk.status,
-                }
+              ? { ...m, content: chunk.text, reasoningTrace: chunk.reasoning || m.reasoningTrace, status: chunk.status }
               : m
           )
         );
@@ -107,158 +126,54 @@ export function ChatScreen({
     });
 
     setIsGenerating(false);
-  }, [text, isGenerating, conversationId, messages, chatService, settings]);
+  }, [messages, isGenerating, conversationId, chatService, settings, activeModelId]);
 
   const handleStop = useCallback(() => {
-    if (conversationId) {
-      chatService.stopGeneration(conversationId);
-    }
+    if (conversationId) chatService.stopGeneration(conversationId);
     setIsGenerating(false);
   }, [conversationId, chatService]);
 
-  const toggleMic = useCallback(() => {
-    if (isRecording) {
-      voiceService.stopListening();
-      setIsRecording(false);
-      return;
-    }
-    voiceService.startListening({
-      onResult: (transcript: string, isFinal: boolean) => {
-        setText((prev) => (prev ? prev + ' ' + transcript : transcript));
-        if (isFinal) {
-          setIsRecording(false);
-        }
-      },
-      onError: () => {
-        setIsRecording(false);
-      },
-      onEnd: () => setIsRecording(false),
-    });
-    setIsRecording(true);
-  }, [isRecording, voiceService]);
+  const handleEditUserMessage = useCallback((content: string) => {
+    setText(content);
+  }, []);
 
   const renderMessage = useCallback(
-    ({ item, index }: { item: ChatMessage; index: number }) => (
-      <MessageBubble message={item} theme={theme} isLast={index === messages.length - 1} />
+    ({ item }: { item: ChatMessage }) => (
+      <MessageBubble message={item} theme={theme} onRegenerate={onRegenerate} onEdit={item.role === 'user' ? handleEditUserMessage : undefined} />
     ),
-    [theme, messages.length]
+    [theme, onRegenerate, handleEditUserMessage]
   );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={[styles.container, { backgroundColor: c.bgMain }]}>
       <FlatList
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={messages.length === 0 ? { flexGrow: 1 } : { paddingVertical: 12 }}
+        ListEmptyComponent={<EmptyState onSelectPrompt={(p) => handleSend(p)} theme={theme} />}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
-      {isGenerating && (
-        <View style={[styles.thinkingBar, { backgroundColor: colors.surfaceVariant }]}>
-          <ActivityIndicator size="small" color={colors.accent} />
-          <Text style={[styles.thinkingText, { color: colors.textSecondary }]}>
-            DOTVEX is thinking...
-          </Text>
-        </View>
-      )}
-
-      <View style={[styles.composer, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground }]}
-          placeholder="Reply to DOTVEX 2.0..."
-          placeholderTextColor={colors.textMuted}
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={100000}
-        />
-        {isGenerating ? (
-          <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: colors.primary }]}
-            onPress={handleStop}
-          >
-            <Ionicons name="stop" size={18} color={colors.primaryText} />
-          </TouchableOpacity>
-        ) : text.trim() ? (
-          <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: colors.primary }]}
-            onPress={handleSend}
-          >
-            <Ionicons name="arrow-up" size={18} color={colors.primaryText} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.bottomRow}>
-            <TouchableOpacity onPress={toggleMic} style={styles.iconBtn}>
-              <Ionicons
-                name={isRecording ? 'mic' : 'mic-outline'}
-                size={22}
-                color={isRecording ? colors.error : colors.icon}
-              />
-            </TouchableOpacity>
-            {onOpenVoice && (
-              <TouchableOpacity onPress={onOpenVoice} style={styles.iconBtn}>
-                <Ionicons name="mic-circle-outline" size={24} color={colors.accent} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+      <MessageComposer
+        theme={theme}
+        onSendMessage={handleSend}
+        onStopGeneration={handleStop}
+        isGenerating={isGenerating}
+        activeModelId={activeModelId}
+        onChangeModel={onChangeModel}
+        onOpenVoiceMode={onOpenVoiceMode}
+        onOpenCodex={onOpenCodex}
+        onOpenImages={onOpenImages}
+        onOpenLibrary={onOpenLibrary}
+        onOpenScheduled={onOpenScheduled}
+        onOpenPlugins={onOpenPlugins}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  messagesList: {
-    paddingVertical: 12,
-  },
-  thinkingBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  thinkingText: {
-    fontSize: 12,
-  },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-    borderTopWidth: 1,
-  },
-  input: {
-    flex: 1,
-    maxHeight: 120,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  iconBtn: {
-    padding: 6,
-  },
+  container: { flex: 1 },
 });

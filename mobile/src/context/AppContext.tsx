@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
 import {
   ApiClient,
   SettingsService,
@@ -6,10 +7,12 @@ import {
   ConversationService,
   CognitionService,
   UserSettings,
+  DotvexModelId,
+  ThemeMode,
 } from '@dotvex/shared';
 import { AsyncStorageAdapter } from '../services/storage';
 import { MobileVoiceService } from '../services/voice';
-import { DotvexTheme, getTheme, ACCENT_COLORS } from '../theme';
+import { getTheme, DotvexTheme, ACCENT_COLORS } from '../theme';
 
 export const API_BASE_URL_DEFAULT = 'http://localhost:3000';
 
@@ -28,6 +31,9 @@ interface AppContextType {
   updateSettings: (updates: Partial<UserSettings>) => Promise<void>;
   updateApiConfig: (baseUrl: string, apiKey: string) => void;
   isDark: boolean;
+  toggleTheme: () => void;
+  setActiveModelId: (id: DotvexModelId) => void;
+  activeModelId: DotvexModelId;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -42,15 +48,18 @@ const conversationService = new ConversationService(client);
 const cognitionService = new CognitionService(client);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const systemScheme = useColorScheme();
   const [ready, setReady] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [apiBaseUrl, setApiBaseUrl] = useState(API_BASE_URL_DEFAULT);
   const [apiKey, setApiKey] = useState('');
+  const [activeModelId, setActiveModelId] = useState<DotvexModelId>('dotvex-2.0-pro');
 
   useEffect(() => {
     (async () => {
       const s = await settingsService.getSettings();
       setSettings(s);
+      setActiveModelId(s.ai.activeModel);
       const base = s.ai.remoteApiEndpoint || API_BASE_URL_DEFAULT;
       setApiBaseUrl(base);
       client.setBaseUrl(base);
@@ -68,34 +77,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setApiBaseUrl(updates.ai.remoteApiEndpoint);
         client.setBaseUrl(updates.ai.remoteApiEndpoint);
       }
+      if (updates.ai?.activeModel) {
+        setActiveModelId(updates.ai.activeModel);
+      }
     },
     [settings, apiBaseUrl]
   );
 
-  const updateApiConfig = useCallback(
-    (baseUrl: string, key: string) => {
-      setApiBaseUrl(baseUrl);
-      setApiKey(key);
-      client.setBaseUrl(baseUrl);
-      client.setApiKey(key);
-    },
-    []
-  );
+  const updateApiConfig = useCallback((baseUrl: string, key: string) => {
+    setApiBaseUrl(baseUrl);
+    setApiKey(key);
+    client.setBaseUrl(baseUrl);
+    client.setApiKey(key);
+  }, []);
+
+  const toggleTheme = useCallback(async () => {
+    if (!settings) return;
+    const next: ThemeMode = settings.theme === 'dark' ? 'light' : 'dark';
+    await updateSettings({ theme: next });
+  }, [settings, updateSettings]);
 
   if (!ready || !settings) {
     return null;
   }
 
-  const accentColor = ACCENT_COLORS[settings.accentColor] || ACCENT_COLORS.blue;
-  const themeColors = getTheme(settings.theme === 'dark');
-  themeColors.colors.accent = accentColor;
-  themeColors.colors.primary = accentColor;
-  themeColors.colors.iconActive = accentColor;
+  const accentColor = ACCENT_COLORS[settings.accentColor] || ACCENT_COLORS.emerald;
+  const baseTheme = getTheme(settings.theme, systemScheme === 'dark', false);
+  baseTheme.colors.accent = accentColor;
 
   const value: AppContextType = {
     ready,
     settings,
-    theme: themeColors,
+    theme: baseTheme,
     apiBaseUrl,
     apiKey,
     client,
@@ -107,6 +120,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateSettings,
     updateApiConfig,
     isDark: settings.theme === 'dark',
+    toggleTheme,
+    setActiveModelId,
+    activeModelId,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

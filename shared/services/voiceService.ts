@@ -8,7 +8,7 @@ export interface SpeechRecognitionHandlers {
 export interface VoiceService {
   isRecognitionSupported(): boolean;
   isSynthesisSupported(): boolean;
-  startListening(handlers: SpeechRecognitionHandlers, lang?: string): boolean;
+  startListening(handlers: SpeechRecognitionHandlers, lang?: string): boolean | Promise<boolean>;
   stopListening(): void;
   getIsListening(): boolean;
   speakText(text: string, options?: { speed?: number; pitch?: number; onEnd?: () => void }): void;

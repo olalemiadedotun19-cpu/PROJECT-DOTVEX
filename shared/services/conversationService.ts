@@ -29,6 +29,11 @@ export class ConversationService {
     await this.client.patch(`/api/conversations/${encodeURIComponent(id)}`, updates);
   }
 
+  async togglePin(id: string): Promise<void> {
+    const conv = await this.getConversation(id);
+    await this.updateConversation(id, { isPinned: !conv?.isPinned });
+  }
+
   async deleteConversation(id: string): Promise<void> {
     await this.client.delete(`/api/conversations/${encodeURIComponent(id)}`);
   }
