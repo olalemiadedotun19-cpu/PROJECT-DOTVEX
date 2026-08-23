@@ -5,10 +5,9 @@
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "splash": {
       "backgroundColor": "#212121",
-      "image": "./assets/splash-icon.png",
       "resizeMode": "contain"
     },
     "ios": {
@@ -17,13 +16,10 @@
     },
     "android": {
       "package": "com.dotvex.app",
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.INTERNET"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "adaptiveIcon": {
+        "backgroundColor": "#212121",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
     }
   }
 }

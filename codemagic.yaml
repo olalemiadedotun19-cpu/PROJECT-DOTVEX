@@ -13,11 +13,10 @@ workflows:
         working_directory: mobile
         script: |
           npm install
-          npm install -g expo-cli@latest
       - name: Prebuild Android
         working_directory: mobile
         script: |
-          npx expo prebuild --platform android
+          npx expo@latest prebuild --platform android
       - name: Configure Firebase
         working_directory: mobile/android
         script: |
