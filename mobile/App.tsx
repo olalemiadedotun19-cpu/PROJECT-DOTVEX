@@ -1,6 +1,34 @@
 import 'react-native-gesture-handler';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Component, ErrorInfo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, SafeAreaView, ScrollView, TextInput, Switch, FlatList, ActivityIndicator } from 'react-native';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[DOTVEX] Uncaught error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#212121', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <Text style={{ color: '#f43f5e', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>DOTVEX encountered an error</Text>
+          <Text style={{ color: '#737373', fontSize: 12, textAlign: 'center' }}>{this.state.error}</Text>
+          <TouchableOpacity onPress={() => this.setState({ hasError: false, error: '' })} style={{ marginTop: 20, padding: 12, backgroundColor: '#10a37f', borderRadius: 10 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 const Stack = createNativeStackNavigator();
@@ -623,11 +651,13 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppNavigator />
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <AppNavigator />
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

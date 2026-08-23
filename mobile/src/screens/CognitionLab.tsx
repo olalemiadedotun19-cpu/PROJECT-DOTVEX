@@ -31,7 +31,6 @@ function ValueSlider({ value, onChange, min, max, step, color, theme }: any) {
     </View>
   );
 }
-import Slider from '@react-native-community/slider';
 
 interface Props {
   theme: DotvexTheme;

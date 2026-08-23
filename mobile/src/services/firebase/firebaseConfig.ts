@@ -12,14 +12,20 @@ const firebaseConfig = {
 
 let firebaseApp: FirebaseApp;
 let firebaseAuth: Auth;
+let firebaseInitialized = false;
 
 export function getFirebaseApp(): FirebaseApp {
-  if (!firebaseApp) {
+  if (firebaseInitialized && firebaseApp) return firebaseApp;
+  try {
     if (getApps().length === 0) {
       firebaseApp = initializeApp(firebaseConfig);
     } else {
       firebaseApp = getApps()[0];
     }
+    firebaseInitialized = true;
+  } catch (error) {
+    console.error('[DOTVEX] Firebase init error:', (error as Error).message);
+    throw error;
   }
   return firebaseApp;
 }
