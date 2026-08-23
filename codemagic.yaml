@@ -13,49 +13,31 @@ workflows:
         working_directory: mobile
         script: |
           npm install
+          npm install -g expo-cli@latest
       - name: Prebuild Android
         working_directory: mobile
         script: |
-          npx expo prebuild --platform android --no-install
+          npx expo prebuild --platform android
       - name: Configure Firebase
         working_directory: mobile/android
         script: |
           node -e "
             const fs = require('fs');
             const path = require('path');
-
-            // Add Google Services plugin to app/build.gradle
             const appBuildGradle = path.join(__dirname, 'app', 'build.gradle');
             let appGradle = fs.readFileSync(appBuildGradle, 'utf8');
             if (!appGradle.includes('com.google.gms.google-services')) {
-              appGradle = appGradle.replace(
-                'apply plugin: \"com.facebook.react\"',
-                'apply plugin: \"com.facebook.react\"\napply plugin: \"com.google.gms.google-services\"'
-              );
+              appGradle = appGradle.replace('apply plugin: \"com.facebook.react\"', 'apply plugin: \"com.facebook.react\"\napply plugin: \"com.google.gms.google-services\"');
               fs.writeFileSync(appBuildGradle, appGradle);
               console.log('Added Google Services plugin');
             }
-
-            // Add Google Services classpath to root build.gradle
             const rootBuildGradle = path.join(__dirname, 'build.gradle');
             let rootGradle = fs.readFileSync(rootBuildGradle, 'utf8');
             if (!rootGradle.includes('com.google.gms:google-services')) {
-              rootGradle = rootGradle.replace(
-                'classpath(\\\"org.jetbrains.kotlin:kotlin-gradle-plugin\\\")',
-                'classpath(\\\"org.jetbrains.kotlin:kotlin-gradle-plugin\\\")\n    classpath(\\\"com.google.gms:google-services:4.4.2\\\")'
-              );
+              rootGradle = rootGradle.replace('classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin\")', 'classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin\")\n    classpath(\"com.google.gms:google-services:4.4.2\")');
               fs.writeFileSync(rootBuildGradle, rootGradle);
               console.log('Added Google Services classpath');
             }
-
-            // Copy google-services.json
-            const src = path.join(__dirname, '..', 'google-services.json');
-            const dest = path.join(__dirname, 'app', 'google-services.json');
-            if (fs.existsSync(src)) {
-              fs.copyFileSync(src, dest);
-              console.log('Copied google-services.json');
-            }
-
             console.log('Firebase configured');
           "
       - name: Build Android APK
