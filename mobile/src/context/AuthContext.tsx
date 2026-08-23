@@ -45,27 +45,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(firebaseUser));
+    try {
+      const unsubscribe = onAuthChange(async (firebaseUser) => {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(firebaseUser));
+        } else {
+          setUser(null);
+          await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+        setIsInitialized(true);
+      });
+
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser));
       } else {
-        setUser(null);
-        await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+        AsyncStorage.removeItem(AUTH_STORAGE_KEY);
       }
       setIsInitialized(true);
-    });
 
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser));
-    } else {
-      AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+      return unsubscribe;
+    } catch (e) {
+      console.error('[DOTVEX] Auth initialization error:', (e as Error).message);
+      setIsInitialized(true);
     }
-    setIsInitialized(true);
-
-    return unsubscribe;
   }, []);
 
   const handleSignInWithEmail = useCallback(async (email: string, password: string) => {

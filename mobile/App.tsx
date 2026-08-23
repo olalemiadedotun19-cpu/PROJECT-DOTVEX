@@ -1,6 +1,19 @@
 import 'react-native-gesture-handler';
-import React, { useState, useCallback, Component, ErrorInfo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, SafeAreaView, ScrollView, TextInput, Switch, FlatList, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, Component, ErrorInfo, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, SafeAreaView, ScrollView, TextInput, Switch, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+const Stack = createNativeStackNavigator();
+import { AppProvider, useApp } from './src/context/AppContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { ChatScreen } from './src/screens/ChatScreen';
+import { CognitionLab } from './src/screens/CognitionLab';
+import { SidebarDrawer } from './src/components/SidebarDrawer';
+import { DotvexLogo } from './src/components/DotvexLogo';
+import { SplashScreen, InitializationScreen } from './src/screens/SplashScreens';
+import { LoginScreen, SignupScreen, ForgotPasswordScreen } from './src/screens/AuthScreens';
+import { Ionicons } from '@expo/vector-icons';
+import { ChatMessage, Conversation, GroupedConversations, DotvexModelId } from '@dotvex/shared';
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -29,19 +42,27 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
   }
 }
 
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-const Stack = createNativeStackNavigator();
-import { AppProvider, useApp } from './src/context/AppContext';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { ChatScreen } from './src/screens/ChatScreen';
-import { CognitionLab } from './src/screens/CognitionLab';
-import { SidebarDrawer } from './src/components/SidebarDrawer';
-import { DotvexLogo } from './src/components/DotvexLogo';
-import { SplashScreen, InitializationScreen } from './src/screens/SplashScreens';
-import { LoginScreen, SignupScreen, ForgotPasswordScreen } from './src/screens/AuthScreens';
-import { Ionicons } from '@expo/vector-icons';
-import { ChatMessage, Conversation, GroupedConversations, DotvexModelId } from '@dotvex/shared';
+function ErrorHandler({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('[DOTVEX] Global error:', error.message);
+      Alert.alert('DOTVEX Error', error.message);
+    };
+    const handleUnhandled = (reason: PromiseRejectionEvent) => {
+      console.error('[DOTVEX] Unhandled promise:', reason.reason);
+      Alert.alert('DOTVEX Error', String(reason.reason));
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('error', handleError);
+      window.addEventListener('unhandledrejection', handleUnhandled);
+      return () => {
+        window.removeEventListener('error', handleError);
+        window.removeEventListener('unhandledrejection', handleUnhandled);
+      };
+    }
+  }, []);
+  return <>{children}</>;
+}
 
 function MainApp() {
   const app = useApp();
@@ -132,19 +153,15 @@ function MainApp() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: c.bgMain }]}>
       <StatusBar barStyle={app.isDark ? 'light-content' : 'dark-content'} />
-
-      {/* Top Header */}
       <View style={[styles.header, { backgroundColor: c.bgMain, borderBottomColor: c.dark ? 'transparent' : '#f0f0f0' }]}>
         <TouchableOpacity onPress={() => setDrawerOpen(true)} style={[styles.menuBtn, { backgroundColor: c.dark ? '#2f2f2f' : '#f4f4f4', borderColor: c.dark ? '#383838' : '#e5e5e5' }]}>
           <Ionicons name="menu" size={18} color={c.textPrimary} />
         </TouchableOpacity>
-
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={{ fontSize: 11, fontWeight: '500', color: c.textMuted }} numberOfLines={1}>
             {currentConv?.title || ''}
           </Text>
         </View>
-
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.dark ? '#2f2f2f' : '#f4f4f4', borderRadius: 20, borderWidth: 1, borderColor: c.dark ? '#383838' : '#e5e5e5', padding: 2 }}>
           <TouchableOpacity onPress={handleNewChat} style={{ padding: 7 }}>
             <Ionicons name="create-outline" size={14} color={c.textPrimary} />
@@ -155,7 +172,6 @@ function MainApp() {
         </View>
       </View>
 
-      {/* Main Content */}
       {activeView === 'chat' ? (
         <ChatScreen
           messages={messages}
@@ -181,7 +197,6 @@ function MainApp() {
         <CognitionLab theme={app.theme} cognitionService={app.cognitionService} onBack={() => setActiveView('chat')} />
       )}
 
-      {/* Drawer */}
       <Modal visible={drawerOpen} transparent animationType="slide" onRequestClose={() => setDrawerOpen(false)}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
           <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setDrawerOpen(false)} />
@@ -213,7 +228,6 @@ function MainApp() {
         </View>
       </Modal>
 
-      {/* Modals */}
       <SearchModal visible={showSearch} onClose={() => setShowSearch(false)} theme={app.theme} onSelectConversation={(id: string) => { setShowSearch(false); handleSelectConversation(id); }} conversations={conversations} />
       <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} theme={app.theme} settings={app.settings} onUpdateSettings={app.updateSettings} user={user} />
       <LibraryModal visible={showLibrary} onClose={() => setShowLibrary(false)} theme={app.theme} />
@@ -229,7 +243,65 @@ function MainApp() {
   );
 }
 
-// ─── Modal Components ─────────────────────────────────────────────────────────
+function AuthApp() {
+  const { isAuthenticated, isInitialized } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const [showInit, setShowInit] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+
+  if (showSplash) {
+    return <SplashScreen onFinished={() => { setShowSplash(false); setShowInit(true); }} />;
+  }
+
+  if (showInit) {
+    return <InitializationScreen onFinished={(authenticated: boolean) => { setShowInit(false); }} />;
+  }
+
+  if (!isInitialized) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#212121', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="small" color="#10a37f" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (showForgotPassword) {
+      return <ForgotPasswordScreen onBack={() => setShowForgotPassword(false)} />;
+    }
+    if (showSignup) {
+      return <SignupScreen onSwitchToLogin={() => setShowSignup(false)} onLoggedIn={() => setShowSignup(false)} />;
+    }
+    return <LoginScreen onSwitchToSignup={() => setShowSignup(true)} onLoggedIn={() => {}} />;
+  }
+
+  return <MainApp />;
+}
+
+function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Main" component={AuthApp} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <ErrorHandler>
+        <AuthProvider>
+          <AppProvider>
+            <AppNavigator />
+          </AppProvider>
+        </AuthProvider>
+      </ErrorHandler>
+    </ErrorBoundary>
+  );
+}
 
 function ModalSheet({ visible, onClose, theme, children }: { visible: boolean; onClose: () => void; theme: any; children: React.ReactNode }) {
   const c = theme.colors;
@@ -600,64 +672,6 @@ function VoiceModeModal({ visible, onClose, theme, voiceService, onTranscribedQu
         {transcript ? <Text style={{ fontSize: 14, color: c.textPrimary, marginTop: 20, textAlign: 'center' }}>{transcript}</Text> : null}
       </View>
     </Modal>
-  );
-}
-
-function AuthApp() {
-  const { isAuthenticated, isInitialized } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
-  const [showInit, setShowInit] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
-
-  if (showSplash) {
-    return <SplashScreen onFinished={() => { setShowSplash(false); setShowInit(true); }} />;
-  }
-
-  if (showInit) {
-    return <InitializationScreen onFinished={(authenticated: boolean) => { setShowInit(false); }} />;
-  }
-
-  if (!isInitialized) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#212121', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="small" color="#10a37f" />
-      </View>
-    );
-  }
-
-  if (!isAuthenticated) {
-    if (showForgotPassword) {
-      return <ForgotPasswordScreen onBack={() => setShowForgotPassword(false)} />;
-    }
-    if (showSignup) {
-      return <SignupScreen onSwitchToLogin={() => setShowSignup(false)} onLoggedIn={() => setShowSignup(false)} />;
-    }
-    return <LoginScreen onSwitchToSignup={() => setShowSignup(true)} onLoggedIn={() => {}} />;
-  }
-
-  return <MainApp />;
-}
-
-function AppNavigator() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={AuthApp} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
-
-export default function App() {
-  return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <AppProvider>
-          <AppNavigator />
-        </AppProvider>
-      </AuthProvider>
-    </ErrorBoundary>
   );
 }
 
