@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
       "backgroundColor": "#212121",
       "image": "./assets/splash-icon.png",
@@ -14,11 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dotvex.app",
-      "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "DOTVEX uses speech recognition to convert your voice into text.",
-        "NSMicrophoneUsageDescription": "DOTVEX uses the microphone for voice input."
-      }
+      "bundleIdentifier": "com.dotvex.app"
     },
     "android": {
       "package": "com.dotvex.app",
@@ -28,7 +23,6 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.INTERNET"
@@ -37,9 +31,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-speech-recognition",
-      "@react-native-google-signin/google-signin"
-    ]
+    "plugins": []
   }
 }

@@ -1,13 +1,9 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@dotvex/shared": ["../shared/index.ts"],
-      "@dotvex/shared/*": ["../shared/*"]
-    }
+    "strict": false,
+    "jsx": "react-native",
+    "noImplicitAny": false
   },
-  "include": ["**/*.ts", "**/*.tsx", "../shared/**/*.ts"]
+  "include": ["**/*.ts", "**/*.tsx"]
 }
